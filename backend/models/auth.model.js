@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
 
     degreeLevel: {
         type: String,
-        enum: ["Higher Institutions e.g pHD" ,"Tertiary", "Secondary", "Primary"],
+        enum: ["higher institutions" ,"tertiary", "secondary", "primary"],
         default: "Tertiary",
         trim: true,
         lowercase: true,

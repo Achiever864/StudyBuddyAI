@@ -1,5 +1,6 @@
 import { useState } from "react";
 import api from "../config/api.js";
+import googleLogo from "../assets/google-logo.jpg";
 
 const input =
   "w-full rounded-lg border border-neutral-800 bg-black px-3.5 py-3 text-white placeholder-neutral-600 focus:border-neutral-500 focus:outline-none";
@@ -38,6 +39,7 @@ export default function LoginPage({ onAuth = () => {} }) {
         method: "POST",
         body: form,
       });
+      console.log(data); //testing our data
       localStorage.setItem("token", data.token);
       onAuth(data);
     } catch (err) {
@@ -88,7 +90,7 @@ export default function LoginPage({ onAuth = () => {} }) {
             onClick={handleGoogle}
             className="mt-8 flex w-full items-center justify-center gap-3 rounded-full border border-neutral-700 px-6 py-3 text-sm font-medium text-white hover:border-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <img src="/google-logo.png" alt="" width="18" height="18" />
+            <img src={googleLogo} alt="" width="25" height="25" />
             Continue with Google
           </button>
 

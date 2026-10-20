@@ -4,10 +4,10 @@ export default async function api(path, { method = "GET", body, headers = {} } =
     const token = localStorage.getItem("token");
     const isForm = body instanceof FormData;
 
-    const res = await fetch(BASE_URL +  path, {
+    const res = await fetch(BASE_URL + path, {
         method,
         headers: {
-            ...(body && !isForm & { "Content-Type" : "application/json" }),
+            ...(body && !isForm && { "Content-Type": "application/json" }),
             ...(token && { Authorization: `Bearer ${token}` }),
             ...headers,
         },

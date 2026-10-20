@@ -1,10 +1,10 @@
 import User from "../models/auth.model.js";
 import jwt from "jsonwebtoken";
-import bcryptjs from "bcryptjs";
+import bcrypt from "bcryptjs";
 
 const registerUser = async (req, res) => {
     try {
-        const { email, username, password } = req.body;
+        const { email, name, password } = req.body;
 
         const user = await User.findOne({ email });
 
@@ -14,7 +14,7 @@ const registerUser = async (req, res) => {
             })
         };
 
-        const existingUsername = await User.findOne({ username });
+        const existingUsername = await User.findOne({ name });
         if (existingUsername){
             return res.status(400).json({
                 message: "Username is already taken"
@@ -25,9 +25,8 @@ const registerUser = async (req, res) => {
 
         const newUser = await User.create({
             email,
-            username,
-            password: hashedPassword,
-            degreeLevel
+            username: name,
+            password: hashedPassword
         })
 
         const token = jwt.sign(
