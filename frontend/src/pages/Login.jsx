@@ -13,6 +13,8 @@ export default function LoginPage({ onAuth = () => {} }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const { login } = useAuth();
   const navigate = useNavigate();
   const isSignup = mode === "signup";
 
@@ -41,10 +43,12 @@ export default function LoginPage({ onAuth = () => {} }) {
       const data = await api(`/api/auth/${isSignup ? "register" : "login"}`, {
         method: "POST",
         body: form,
-      })
-      console.log(data);
+      });
+
       localStorage.setItem("token", data.token);
       onAuth(data);
+
+      login(data.user);
       navigate("/chat");
     } catch (err) {
       setError(err.message);

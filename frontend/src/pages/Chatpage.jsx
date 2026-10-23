@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import api from "../config/api";
+import { useAuth } from "../context/AuthContext";
 
 const suggestions = [
   "Make flashcards from my notes",
@@ -7,7 +9,7 @@ const suggestions = [
   "Explain a topic in simple terms",
 ];
 
-export default function ChatPage({ user = {}, onLogout = () => {} }) {
+export default function ChatPage() {
   const [chats, setChats] = useState([]);
   const [chatId, setChatId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -17,10 +19,13 @@ export default function ChatPage({ user = {}, onLogout = () => {} }) {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const textareaRef = useRef(null);
-  
+
   useEffect(() => {
     api("/api/chats")
       .then((data) => setChats(Array.isArray(data) ? data : data.chats || []))
@@ -39,6 +44,11 @@ export default function ChatPage({ user = {}, onLogout = () => {} }) {
     setMaterial(null);
     setSidebarOpen(false);
   };
+
+  const handleLogout = async () => {
+    logout();
+    navigate("/");
+  }
 
   const openChat = async (id) => {
     setSidebarOpen(false);
@@ -109,10 +119,6 @@ export default function ChatPage({ user = {}, onLogout = () => {} }) {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    onLogout();
-  };
 
   return (
     <div className="flex h-screen bg-black text-neutral-300">
@@ -157,8 +163,8 @@ export default function ChatPage({ user = {}, onLogout = () => {} }) {
         </nav>
 
         <div className="flex items-center justify-between border-t border-neutral-900 p-5 text-sm">
-          <span className="truncate text-neutral-300">{user.name || "Account"}</span>
-          <button onClick={logout} className="text-neutral-500 hover:text-white focus:outline-none focus-visible:text-white">
+          <span className="truncate text-neutral-300">{user?.username || "??"}</span>
+          <button onClick={() => handleLogout()} className="text-neutral-500 hover:text-white focus:outline-none focus-visible:text-white">
             Log out
           </button>
         </div>
