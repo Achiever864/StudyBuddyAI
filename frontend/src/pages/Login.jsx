@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import api from "../config/api.js";
 import googleLogo from "../assets/google-logo.jpg";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const input =
   "w-full rounded-lg border border-neutral-800 bg-black px-3.5 py-3 text-white placeholder-neutral-600 focus:border-neutral-500 focus:outline-none";
@@ -11,6 +13,7 @@ export default function LoginPage({ onAuth = () => {} }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const isSignup = mode === "signup";
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
@@ -38,10 +41,11 @@ export default function LoginPage({ onAuth = () => {} }) {
       const data = await api(`/api/auth/${isSignup ? "register" : "login"}`, {
         method: "POST",
         body: form,
-      });
-      console.log(data); //testing our data
+      })
+      console.log(data);
       localStorage.setItem("token", data.token);
       onAuth(data);
+      navigate("/chat");
     } catch (err) {
       setError(err.message);
     } finally {

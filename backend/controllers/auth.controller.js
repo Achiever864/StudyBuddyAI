@@ -41,8 +41,10 @@ const registerUser = async (req, res) => {
                 id: newUser._id,
                 username: newUser.username,
                 email: newUser.email,
-                token: token
-            }
+                avatar: newUser.avatar,
+                degreeLevel: newUser.degreeLevel,
+            },
+            token
         })
     } catch (error) {
         console.error("Error registering user:", error);
@@ -74,7 +76,13 @@ const loginUser = async (req, res) => {
 
         res.status(200).json({
             message: "Login successful",
-            user,
+            user:{
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar,
+                degreeLevel: user.degreeLevel
+            },
             token
         })
     } catch (error) {
