@@ -9,15 +9,16 @@ const messageSchema = new mongoose.Schema(
             index: true
         },
 
-        sender: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
+        role: {
+            type: String,
+            enum: ["user", "assistant"],
             required: true
         },
 
         text: {
             type: String,
             trim: true,
+            required: true,
             default: ""
         },
 
@@ -58,6 +59,12 @@ const messageSchema = new mongoose.Schema(
                 default: null
             }
         },
+
+        sources: [{
+            materialId: mongoose.Schema.Types.ObjectId,
+            chunkId: String,
+            score: Number
+        }],
     },
     { timestamps: true }
 );

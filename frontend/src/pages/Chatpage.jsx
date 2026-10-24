@@ -27,16 +27,8 @@ export default function ChatPage() {
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    api("/api/chats")
-      .then((data) => setChats(Array.isArray(data) ? data : data.chats || []))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
-
-  const addMessage = (role, content) => setMessages((m) => [...m, { role, content }]);
 
   const newChat = () => {
     setChatId(null);

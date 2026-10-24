@@ -1,10 +1,9 @@
-impoprt Message from "../models/message.model.js";
+import Message from "../models/message.model.js";
 import Conversation from "../models/conversation.model.js";
-
 
 const sendMessage = async (req, res) => {
     try {
-        const { sender } = req.user.id;
+        const sender = req.user.id;
         const { chatId, text } = req.body;
 
         const conversation = await Conversation.findById(chatId);
@@ -16,6 +15,8 @@ const sendMessage = async (req, res) => {
             return res.status(400).json({ message: "Message cannot be empty."})
         }
 
+
+
         const message = await Message.create({
             sender,
             chatId,
@@ -23,8 +24,9 @@ const sendMessage = async (req, res) => {
             attachment
         });
 
+
         return res.status(201).json({
-            message: "Message sent successfully"
+            message: "Message sent successfully",
             //populate message..I should consider websocket or manually sha
         })
     } catch (err) {
