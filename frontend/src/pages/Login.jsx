@@ -26,7 +26,7 @@ export default function LoginPage({ onAuth = () => {} }) {
   };
 
   const handleGoogle = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || ""}/api/auth/google`;
+    //place your handler to the backend for google auth here
   };
 
   const handleSubmit = async (e) => {
