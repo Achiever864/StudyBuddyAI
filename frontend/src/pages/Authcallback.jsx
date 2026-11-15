@@ -13,7 +13,7 @@ export default function AuthCallback() {
 
     localStorage.setItem("token", token);
 
-    api("/api/auth/me")
+    api("/api/auth/get")
       .then((data) => {
         login(data.user);
         navigate("/chat", { replace: true });
