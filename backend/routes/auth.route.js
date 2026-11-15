@@ -8,7 +8,7 @@ const authRouter = express.Router();
 authRouter.post("/register", registerUser);
 authRouter.post("/login", loginUser);
 authRouter.get("/google", googleRedirect);
-authRouter.get("/google/callback", googleCallback)
+authRouter.get("/google/callback", googleCallback);
 authRouter.get("/get", protect, getMe);
 
 export default authRouter;

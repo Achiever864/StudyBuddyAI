@@ -1,16 +1,32 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router";
+import api from "../config/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function AuthCallback() {
-    useEffect(() => {
-        const token = new URLSearchParams(window.location.search).get("token");
-        if (token) localStorage.setItem("token", token);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-        window.location.replace(token ? "/chat" : "/login");
-    }, []);
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("token");
+    if (!token) return navigate("/login", { replace: true });
 
-    return (
-        <p className="flex min-h-screen items-center justify-center bg-black text-neutral-500">
-            Signing you in...
-        </p>
-    );
+    localStorage.setItem("token", token);
+
+    api("/api/auth/me")
+      .then((data) => {
+        login(data.user);
+        navigate("/chat", { replace: true });
+      })
+      .catch(() => {
+        localStorage.removeItem("token");
+        navigate("/login", { replace: true });
+      });
+  }, []);
+
+  return (
+    <p className="flex min-h-screen items-center justify-center bg-black text-neutral-500">
+      Signing you in...
+    </p>
+  );
 }
