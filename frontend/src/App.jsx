@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import LoginPage from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ChatPage from "./pages/Chatpage";
+import AuthCallback from "./pages/Authcallback.jsx";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

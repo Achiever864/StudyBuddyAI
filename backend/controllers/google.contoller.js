@@ -2,8 +2,18 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import User from "../models/auth.model.js";
 
-const getCookie = (req, params) =>
+const getCookie = (req, name) =>
     req.headers.cookie?.split("; ").find((c) => c.startsWith(`${name}=`))?.split("=")[1];
+
+
+const makeUsername = async (base) => {
+    const clean = base.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20) || "user";
+    let username = clean;
+    while (await User.exists({ username })) {
+        username = `${clean}${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+    return username;
+};
 
 const googleRedirect = (req, res) => {
     const state = crypto.randomBytes(16).toString("hex");
@@ -25,10 +35,8 @@ const googleRedirect = (req, res) => {
     });
 
     res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
-}
+};
 
-
-//Google send the user to the callback with a code....
 const googleCallback = async (req, res) => {
     const { code, state, error } = req.query;
     const fail = (msg) => res.redirect(`${process.env.FRONTEND_URL}/login?error=${encodeURIComponent(msg)}`);
@@ -58,19 +66,30 @@ const googleCallback = async (req, res) => {
         const profile = await profileRes.json();
         if (!profile.email_verified) return fail("Your Google email isn't verified.");
 
-        //find or create user
         let user = await User.findOne({ email: profile.email });
         if (!user) {
-            user = await User.create({ name: profile.name, email: profile.email, googleId: profile.sub });
+            user = await User.create({
+                username: await makeUsername(profile.name || profile.email.split("@")[0]),
+                email: profile.email,
+                googleId: profile.sub,
+                avatar: profile.picture,
+            });
         } else if (!user.googleId) {
-            user.googleid = profile.sub;
+            user.googleId = profile.sub;
             await user.save();
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
         res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
     } catch (err) {
         console.error("Google auth error:", err);
         fail("Google sign-in failed. Try again.");
     }
 };
+
+
+export {
+    googleCallback,
+    googleRedirect
+}
