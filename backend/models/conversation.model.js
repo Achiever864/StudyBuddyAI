@@ -1,14 +1,23 @@
 import mongoose from "mongoose";
 
 const conversationSchema = new mongoose.Schema({
-    roomName: {
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        index: true
+    },
+
+    title: {
         type: String,
         trim: true,
-        default: null
-    }
+        maxlength: 100,
+        default: "Untitled chat"
+    },
 },
 {
-    timestamps: true
-})
+    timestamps: true,
+});
 
+conversationSchema.index({ user: 1, updatedAt: -1 });
 export default mongoose.model("Conversation", conversationSchema);
