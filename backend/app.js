@@ -3,6 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import hpp from "hpp";
 import authRouter from "./routes/auth.route.js";
+import messageRouter from "./routes/message.route.js";
+import converseRouter from "./routes/conversation.route.js";
 
 const app = express();
 
@@ -30,7 +32,11 @@ app.use(express.json({ limit: "10mb" }));
 
 app.use(hpp());
 
+//------Custom Routes------------->
 app.use("/api/auth", authRouter);
+app.use("/api/conversation", converseRouter);
+app.use("/api/message", messageRouter);
+
 
 app.get("/", (req, res) => {
     res.send("Server is running");
