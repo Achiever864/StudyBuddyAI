@@ -1,10 +1,16 @@
 import Message from "../models/message.model.js";
 import Conversation from "../models/conversation.model.js";
+import aichat from "../services/artificalIntelligence.js";
+import { startConversation } from "./conversation.controller.js";
 
 const sendMessage = async (req, res) => {
     try {
         const userId = req.user.id;
         const { chatId, text, materialId } = req.body;
+
+        if (!chatId){
+            startConversation();
+        }
 
         if (!text?.trim()) {
             return res.status(400).json({ messsage: "Message cannot be empty." });

@@ -20,12 +20,6 @@ const startConversation = async (req, res) => {
             material: materialId || null
         });
 
-        await Messages.create({
-            conversation: conversation._id,
-            role: "user",
-            content: message  
-        });
-
         res.status(201).json({
             messsage: "Conversation started",
             chatId: conversation._id,
