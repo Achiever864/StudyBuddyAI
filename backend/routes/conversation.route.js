@@ -1,6 +1,6 @@
 import express from "express";
-import { startConversation } from "../controllers/conversation.controller";
-import protect from "../middleware/auth.middleware";
+import { startConversation } from "../controllers/conversation.controller.js";
+import protect from "../middleware/auth.middleware.js";
 
 const converseRouter = express.Router();
 

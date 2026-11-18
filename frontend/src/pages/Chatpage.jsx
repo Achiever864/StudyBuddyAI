@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import {
+  Menu,
+  Plus,
+  Send,
+  Paperclip,
+  LogOut,
+  MessageSquare,
+  X,
+  LoaderCircle,
+} from "lucide-react";
 import api from "../config/api";
 import { useAuth } from "../context/AuthContext";
+import Logo from "../componenets/Logo";
 
 const suggestions = [
   "Make flashcards from my notes",
@@ -111,7 +122,6 @@ export default function ChatPage() {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
   };
 
-
   return (
     <div className="flex h-screen bg-black text-neutral-300">
       {sidebarOpen && (
@@ -124,15 +134,16 @@ export default function ChatPage() {
         }`}
       >
         <div className="p-5">
-          <span className="font-medium text-white">StudyBuddy</span>
+          <Logo />
         </div>
 
         <div className="px-3">
           <button
             onClick={newChat}
-            className="w-full rounded-full border border-neutral-700 px-4 py-2 text-sm text-white hover:border-neutral-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="flex w-full items-center gap-3 rounded-xl border border-neutral-800 pl-15 py-3 text-sm text-white transition hover:border-neutral-600 hover:bg-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            New chat
+            <Plus size={18} />
+            <span>New chat</span>
           </button>
         </div>
 
@@ -143,29 +154,40 @@ export default function ChatPage() {
             <button
               key={c._id}
               onClick={() => openChat(c._id)}
-              className={`block w-full truncate rounded-lg px-3 py-2 text-left text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+              className={`flex w-full items-center gap-3 truncate rounded-lg px-3 py-3 text-left text-sm transistion focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                 c._id === chatId
                   ? "bg-neutral-900 text-white"
                   : "text-neutral-400 hover:bg-neutral-900 hover:text-white"
               }`}
             >
-              {c.title || "Untitled chat"}
+              <MessageSquare size={16} className="shrink-0" />
+              <span className="truncate">
+                {c.title || "Untitled chat"}
+              </span>
             </button>
           ))}
         </nav>
 
         <div className="flex items-center justify-between border-t border-neutral-900 p-5 text-sm">
           <span className="truncate text-neutral-300">{user?.username || "??"}</span>
-          <button onClick={() => handleLogout()} className="text-neutral-500 hover:text-white focus:outline-none focus-visible:text-white">
-            Log out
+          <button
+            onClick={() => handleLogout()}
+            title="Log out"
+            aria-label="Log out"
+            className="rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-900 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <LogOut size={18} />
           </button>
         </div>
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="px-4 py-3 md:hidden">
-          <button onClick={() => setSidebarOpen(true)} className="text-sm text-neutral-400 hover:text-white">
-            Menu
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-sm text-neutral-400 hover:text-white"
+          >
+            <Menu size={22} />
           </button>
         </div>
 
@@ -206,7 +228,12 @@ export default function ChatPage() {
                     </p>
                   </li>
                 ))}
-                {loading && <li className="text-neutral-500">Thinking...</li>}
+                {loading && (
+                  <li className="flex items-center gap-3 text-sm text-neutral-500">
+                    <LoaderCircle size={17} className="animate-spim" />
+                    <span>Thinking...</span>
+                  </li>
+                )}
               </ul>
             )}
             <div ref={bottomRef} />
@@ -221,9 +248,11 @@ export default function ChatPage() {
                 {material && (
                   <button
                     onClick={() => setMaterial(null)}
-                    className="ml-3 underline underline-offset-4 hover:text-white focus:outline-none focus-visible:text-white"
+                    title="Remove attachment"
+                    aria-label="Remove attachment"
+                    className="ml-2 rounded-full p-1 text-neutral-500 hover:bg-neutral-800 hover:text-white"
                   >
-                    Remove
+                    <X size={15} />
                   </button>
                 )}
               </p>
@@ -232,10 +261,12 @@ export default function ChatPage() {
             <div className="flex items-end gap-2 rounded-3xl border border-neutral-800 bg-neutral-950 p-2 focus-within:border-neutral-600">
               <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.txt" className="sr-only" onChange={handleFile} />
               <button
-                onClick={() => fileRef.current.click()}
-                className="rounded-full px-3 py-2 text-sm text-neutral-400 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                onClick={() => fileRef.current?.click()}
+                title="Attach a document"
+                aria-label="Attach a document"
+                className="rounded-full p-3 text-neutral-400 transition hover:bg-neutral-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                Attach
+                <Paperclip size={20} />
               </button>
               <textarea
                 ref={textareaRef}
@@ -250,9 +281,11 @@ export default function ChatPage() {
               <button
                 onClick={send}
                 disabled={loading || !input.trim()}
-                className="rounded-full bg-neutral-100 px-5 py-2 text-sm font-medium text-black hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-40"
+                title="Send message"
+                aria-label="Send message"
+                className="flex h-10 w-10 shink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-30"
               >
-                Send
+                <Send size={18} />
               </button>
             </div>
           </div>
