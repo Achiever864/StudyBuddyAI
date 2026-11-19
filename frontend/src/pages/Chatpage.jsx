@@ -41,6 +41,8 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const addMessage = (role, content) => setMessages((m) => [...m, { role, content }]);
+  
   const newChat = () => {
     setChatId(null);
     setMessages([]);
@@ -74,7 +76,7 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const data = await api("/api/chat", {
+      const data = await api("/api/message/send", {
         method: "POST",
         body: { message: text, chatId, materialId: material?.id },
       });

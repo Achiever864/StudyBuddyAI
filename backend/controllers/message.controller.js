@@ -1,53 +1,73 @@
+import mongoose from "mongoose";
 import Message from "../models/message.model.js";
 import Conversation from "../models/conversation.model.js";
-import aichat from "../services/artificalIntelligence.js";
-import { startConversation } from "./conversation.controller.js";
+import * as ragService from "../services/ragService.js";
+import { startConversation, createConversation } from "./conversation.controller.js";
 
 const sendMessage = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { chatId, text, materialId } = req.body;
+        const { chatId, message, materialId } = req.body;
+        const text = message?.trim();
 
-        if (!chatId){
-            startConversation();
-        }
-
-        if (!text?.trim()) {
+        if (!text) {
             return res.status(400).json({ messsage: "Message cannot be empty." });
         }
 
-        const conversation = await Conversation.findOne({ _id: chatId, user: userId });
-        if (!conversation) {
-            return res.status(404).json({ message: "Conversation not found" });
+        if ((chatId && !mongoose.isValidObjectId(chatId)) || (materialId && !mongoose.isValidObjectId(materialId))) {
+            return res.status(400).json({ message: "Message cannot be empty." })
+        }
+
+        let conversation;
+
+        if (chatId) {
+            conversation = await Conversation.findOne({ _id: chatId, user: userId });
+            if (!conversation) {
+                return res.status(404).json({ message: "Conversation not found" });
+            }
+        } else {
+            conversation = await createConversation({ userId, message: text, materialId });
         }
 
         const userMessage = await Message.create({
-            chatId, role: "user", text: text.trim(), attachment: materialId,
+            conversation: conversation._id,
+            role: "user",
+            content: text,
+            attachment: materialId || null,
         });
 
-        const history = await Message.find({ chatId }).sort({ createdAt: -1 }).limit(10).lean();
+        //we want to get the last 10 messages from the chat as a context or pattern whatever
+        const history = await Message.find({ conversation: conversation._id }).sort({ createdAt: -1 }).limit(10).lean();
         history.reverse();
 
         const { answer, sources } = await ragService.answer({
             question: text,
             history,
             userId,
-            materialId,
+            materialId: materialId || conversation.material,
         });
 
         const assistantMessage = await Message.create({
-            chatId, role: "assistant", text: answer, sources,
+            conversation: conversation._id,
+            role: "assistant",
+            content: answer,
+            sources,
         });
 
+        await Conversation.updateOne({ _id: conversation._id }, { $set: { updatedAt: new Date() } });
 
         return res.status(201).json({
             message: "Message sent successfully",
+            chatId: conversation._id,
+            title: conversation.title,
+            reply: answer,
+            sources,
             userMessage,
             assistantMessage,
-            //populate message..I should consider websocket or manually sha
-        })
+        });
     } catch (err) {
-        return res.status(500).json({ message: err.message });
+        console.error("Error sending message:", err);
+        return res.status(500).json({ message: "Something went wrong getting a reply. Please try again." });
     }
 }
 

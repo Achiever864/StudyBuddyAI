@@ -15,7 +15,7 @@ const messageSchema = new mongoose.Schema(
             required: true
         },
 
-        text: {
+        content: {
             type: String,
             trim: true,
             required: true,
@@ -23,45 +23,14 @@ const messageSchema = new mongoose.Schema(
         },
 
         attachment: {
-            type: {
-                type: String,
-                enum: ["image", "video", "audio", "file"],
-                default: null
-            },
-
-            url: {
-                type: String,
-                default: null
-            },
-
-            publicId: {
-                type: String,
-                default: null
-            },
-
-            fileName: {
-                type: String,
-                default: null
-            },
-
-            mimeType: {
-                type: String,
-                default: null
-            },
-
-            size: {
-                type: Number,
-                default: null
-            },
-
-            duration: {
-                type: Number,
-                default: null
-            }
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Material",
+            default: null
         },
 
         sources: [{
-            materialId: mongoose.Schema.Types.ObjectId,
+            _id: false,
+            materialId: { type: mongoose.Schema.Types.ObjectId, ref: "Material"},
             chunkId: String,
             score: Number
         }],
@@ -69,4 +38,5 @@ const messageSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+messageSchema.index({ conversation: 1, createdAt: 1 });
 export default mongoose.model("Message", messageSchema);
