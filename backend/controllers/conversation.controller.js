@@ -61,8 +61,42 @@ const fetchConversation = async (req, res) => {
         res.status(500).json({ message: "Error in fetching conversations" });
     }
 }
+
+const fetchChats = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { chatId } = req.params;
+
+        if (!mongoose.isValidObjectId(chatId)){
+            return res.status(400).json({ message: "Invalid chat" });
+        }
+
+        //we must confirm that a user owns the chat before sending access...
+        const conversation = await Conversation.findOne({ _id: chatId, user: userId });
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation not found" });
+        }
+
+        const messages = await Message.find({ conversation: chatId })
+            .sort({ createdAt: 1 })
+            .select("role content sources createdAt")
+            .lean();
+
+        return res.status(200).json({
+            message: "Messages fetched successfully",
+            chatId: conversation._id,
+            title: conversation.title,
+            messages
+        });
+    } catch (error) {
+        console.error("Error fetching messages:", error);
+        return res.status(500).json({ message: "Internal Server Error"});
+    }
+}
+
 export {
     startConversation,
     createConversation,
-    fetchConversation
+    fetchConversation,
+    fetchChats
 }

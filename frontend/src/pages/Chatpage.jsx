@@ -30,7 +30,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const { user, logout } = useAuth();
+  const { user, login, logout } = useAuth();
   const navigate = useNavigate();
 
   const bottomRef = useRef(null);
@@ -46,6 +46,18 @@ export default function ChatPage() {
     api("/api/conversation/get")
       .then((data) => setChats(data.conversations || []))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (user) return;
+    if (!localStorage.getItem("token")) return navigate("/login");
+
+    api("api/auth/get")
+    .then((data) => login(data.user))
+    .catch(() => {
+      localStorage.removeItem("token");
+      navigate("/login");
+    });
   }, []);
 
   const addMessage = (role, content) => setMessages((m) => [...m, { role, content }]);
@@ -65,7 +77,7 @@ export default function ChatPage() {
   const openChat = async (id) => {
     setSidebarOpen(false);
     try {
-      const data = await api(`/api/chats/${id}`);
+      const data = await api(`/api/conversation/getChats/${id}`);
       setChatId(id);
       setMessages(data.messages || []);
     } catch (err) {
