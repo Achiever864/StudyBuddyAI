@@ -41,8 +41,15 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  //for loading the chat histories when a page opens
+  useEffect(() => {
+    api("/api/conversation/get")
+      .then((data) => setChats(data.conversations || []))
+      .catch(() => {});
+  }, []);
+
   const addMessage = (role, content) => setMessages((m) => [...m, { role, content }]);
-  
+
   const newChat = () => {
     setChatId(null);
     setMessages([]);
@@ -156,7 +163,7 @@ export default function ChatPage() {
             <button
               key={c._id}
               onClick={() => openChat(c._id)}
-              className={`flex w-full items-center gap-3 truncate rounded-lg px-3 py-3 text-left text-sm transistion focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+              className={`flex w-full items-center gap-3 truncate rounded-lg px-3 py-3 text-left text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                 c._id === chatId
                   ? "bg-neutral-900 text-white"
                   : "text-neutral-400 hover:bg-neutral-900 hover:text-white"
@@ -232,7 +239,7 @@ export default function ChatPage() {
                 ))}
                 {loading && (
                   <li className="flex items-center gap-3 text-sm text-neutral-500">
-                    <LoaderCircle size={17} className="animate-spim" />
+                    <LoaderCircle size={17} className="animate-spin" />
                     <span>Thinking...</span>
                   </li>
                 )}
@@ -285,7 +292,7 @@ export default function ChatPage() {
                 disabled={loading || !input.trim()}
                 title="Send message"
                 aria-label="Send message"
-                className="flex h-10 w-10 shink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <Send size={18} />
               </button>

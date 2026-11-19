@@ -46,7 +46,23 @@ const startConversation = async (req, res) => {
     }
 }
 
+const fetchConversation = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const conversations = await Conversation.find({ user: userId }).sort({ updatedAt: -1 });
+
+        return res.status(200).json({
+            message: "Conversations fetched successfully",
+            conversations
+        })
+    } catch (error) {
+        console.error("conversation fetch errror:", err);
+        res.status(500).json({ message: "Error in fetching conversations" });
+    }
+}
 export {
     startConversation,
-    createConversation
+    createConversation,
+    fetchConversation
 }
