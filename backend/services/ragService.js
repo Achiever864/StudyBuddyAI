@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import { GoogleGenAI } from "@google/genai";
 import Chunk from "../models/chunk.model.js";
+import { classifyRequest, buildContextInstructions } from "./contextEngine.service.js";
+import { generateResponse } from "./responseGenerator.service.js";
 
 const EMBED_MODEL = "gemini-embedding-001";
 const EMBED_DIMS = 768;
@@ -18,6 +20,54 @@ let client;
 const getAI = () => (client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_AI }));
 
 const toId = (id) => new mongoose.Types.ObjectId(id);
+
+//some function to add START here
+function cleanHistory(history = [], question){
+    const filtered = history.filter(
+        (message) =>
+            message.role === "user" ||
+        message.role === "assistant"
+    );
+
+    const last = filtered[filtered.length - 1];
+
+    if (
+        last &&
+        last.role === "user" &&
+        last.content.trim() === question.trim()
+    ) {
+        filtered.pop();
+    }
+
+    return filtered;
+}
+
+function validateSegments(segments, contextChunks) {
+    return segments.map((segment) => {
+        const validSources = segment.sources.filter(
+            (sourceIndex) =>
+                Number.isInteger(sourceIndex) &&
+            sourceIndex >= 1 &&
+            sourceIndex <= contextChunks.length
+        );
+
+        if (
+            segment.type === "grounded" &&
+            validSources.length === 0
+        ) {
+            return {
+                ...segment,
+                type: "explanation",
+                sources: [],
+            };
+        }
+        return {
+            ...segment,
+            sources: validSources,
+        };
+    });
+}
+
 
 
 export function chunkText (text, size = CHUNK_SIZE, overlap = CHUNK_OVERLAP) {
@@ -152,27 +202,57 @@ function toGeminiContents(history, question){
 
 
 export async function answer({ question, history = [], userId, materialId }) {
-    const contextChunks = await retrieve({ question, userId, materialId });
+    const cleanedHistory = cleanHistory(history, question);
 
-    const prior = history.filter((m) => m.role === "user" || m.role === "assistant");
-    const last = prior[prior.length - 1];
-    if (last && last.role === "user" && last.content.trim() === question.trim()) prior.pop();
+    const classification = classifyRequest(
+        question,
+        cleanedHistory
+    );
 
-    const response = await getAI().models.generateContent({
-        model: process.env.GEMINI_CHAT_MODEL || DEFAULT_CHAT_MODEL,
-        contents: toGeminiContents(prior, question),
-        config: {
-            systemInstruction: buildSystemPrompt(contextChunks),
-            temperature: 0.3,
-        },
+    const contextChunks = await retrieve({
+        question,
+        userId,
+        materialId,
     });
 
+    const cognitiveinstructions = 
+        buildContextInstructions({
+            classification,
+            materialAvailable:
+                contextChunks.length > 0,
+        });
+
+    const generated = await generateResponse({
+        question,
+        history: cleanedHistory,
+        contextChunks,
+        cognitiveInstructions,
+    });
+
+    const segments = validateSegments(
+        genterated.segments,
+        contextChunks
+    );
+
+    const answerText = segments
+        .map((segment) => segment.text)
+        .join("\n\n");
+
+    const sources = contextChunks.map(
+        (chunk, index) => ({
+            sourceIndex: index + 1,
+            materialId: chunk.materialId,
+            chunkId: String(chunk._id),
+            chunkIndex: chunk.index,
+            score: chunk.score,
+        })
+    );
+
     return {
-        answer: response.text || "I couldn't generate an answer for that. Try rephrasing your question.",
-        sources: contextChunks.map((c) => ({
-            materialId: c.materialId,
-            chunkId: String(c._id),
-            score: c.score,
-        })),
+        answer: answerText,
+        segments,
+        mode: generated.mode,
+        intent: generated.intent,
+        sources
     };
 }
