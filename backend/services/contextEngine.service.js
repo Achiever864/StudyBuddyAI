@@ -17,7 +17,7 @@ const INTENTS = {
 };
 
 const containsAny = (text, phrase) =>
-    phrases.some((phrase) => text.includes(phrase));
+    phrase.some((phrase) => text.includes(phrase));
 
 export function classifyRequest(question, history = []) {
     const q = question.toLowerCase().trim();
@@ -235,7 +235,17 @@ export function buildContextInstructions({
 
     STYLE:
     Be conversational, natural, patient, clear, and encouraging.
-    Avoid unnecessary disclaimers and robotic refusal language.
+
+    Avoid:
+    - Unnecessary disclaimers
+    - Robotic refusal language
+    - Excessive questioning
+    - Repititive phrases
+    - Condescension
+    - Shaming the student
+    - Artificially withholding explanations
+
+    
     Always prioritize helping the student learn.
     `;
 }
