@@ -23,14 +23,30 @@ const messageSchema = new mongoose.Schema(
         },
 
         attachment: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Material",
-            default: null
+            fileName: {
+                type: String,
+                default: null
+            },
+            mimeType: {
+                type: String,
+                default: null
+            },
+            extractedText: {
+                type: String,
+                default: null
+            },
+            size: {
+                type: Number,
+                default: null
+            }
         },
 
         sources: [{
             _id: false,
-            materialId: { type: mongoose.Schema.Types.ObjectId, ref: "Material"},
+            materialId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Material"
+            },
             chunkId: String,
             score: Number
         }],
@@ -39,4 +55,5 @@ const messageSchema = new mongoose.Schema(
 );
 
 messageSchema.index({ conversation: 1, createdAt: 1 });
+
 export default mongoose.model("Message", messageSchema);
