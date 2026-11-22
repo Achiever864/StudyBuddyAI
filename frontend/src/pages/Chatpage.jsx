@@ -14,6 +14,7 @@ import {
   HelpCircle,
   CheckCircle2,
   Sparkles,
+  FileText,
 } from "lucide-react";
 
 import api from "../config/api";
@@ -169,7 +170,6 @@ function AssistantMessage({ message }) {
 
   return (
     <div className="space-y-4">
-      {/* Cognitive mode / intent metadata */}
       {(message.mode || message.intent) && (
         <div className="flex flex-wrap items-center gap-2">
           {message.mode && (
@@ -200,6 +200,7 @@ function AssistantMessage({ message }) {
           {message.content || message.answer || message.reply}
         </p>
       )}
+
       {sources.length > 0 && (
         <div className="border-t border-neutral-900 pt-3">
           <div className="mb-2 flex items-center gap-2 text-xs text-neutral-600">
@@ -228,13 +229,45 @@ function AssistantMessage({ message }) {
   );
 }
 
+function AttachmentPreview({ file, onRemove }) {
+  if (!file) return null;
+
+  return (
+    <div className="mb-3 flex items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-neutral-400">
+        <FileText size={20} />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-neutral-300">
+          {file.name}
+        </p>
+
+        <p className="text-xs text-neutral-600">
+          {(file.size / 1024 / 1024).toFixed(2)} MB
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onRemove}
+        title="Remove attachment"
+        aria-label="Remove attachment"
+        className="rounded-full p-2 text-neutral-500 transition hover:bg-neutral-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+      >
+        <X size={17} />
+      </button>
+    </div>
+  );
+}
+
 export default function ChatPage() {
   const [chats, setChats] = useState([]);
   const [chatId, setChatId] = useState(null);
   const [messages, setMessages] = useState([]);
 
   const [input, setInput] = useState("");
-  const [material, setMaterial] = useState(null);
+  const [attachment, setAttachment] = useState(null);
 
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -247,13 +280,11 @@ export default function ChatPage() {
   const fileRef = useRef(null);
   const textareaRef = useRef(null);
 
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
     });
   }, [messages, loading]);
-
 
   useEffect(() => {
     api("/api/conversation/get")
@@ -295,8 +326,13 @@ export default function ChatPage() {
   const newChat = () => {
     setChatId(null);
     setMessages([]);
-    setMaterial(null);
+    setAttachment(null);
+    setInput("");
     setSidebarOpen(false);
+
+    if (fileRef.current) {
+      fileRef.current.value = "";
+    }
 
     textareaRef.current?.focus();
   };
@@ -306,9 +342,13 @@ export default function ChatPage() {
     navigate("/");
   };
 
-
   const openChat = async (id) => {
     setSidebarOpen(false);
+    setAttachment(null);
+
+    if (fileRef.current) {
+      fileRef.current.value = "";
+    }
 
     try {
       const data = await api(`/api/conversation/getChats/${id}`);
@@ -318,7 +358,6 @@ export default function ChatPage() {
       setMessages(
         (data.messages || []).map(normalizeMessage)
       );
-
     } catch (err) {
       addMessage("error", err.message);
     }
@@ -327,38 +366,62 @@ export default function ChatPage() {
   const send = async () => {
     const text = input.trim();
 
-    if (!text || loading) return;
+    if ((!text && !attachment) || loading) return;
+
+    const currentAttachment = attachment;
 
     setInput("");
+    setAttachment(null);
+
+    if (fileRef.current) {
+      fileRef.current.value = "";
+    }
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
 
-    addMessage("user", text);
+    addMessage("user", text || `Uploaded ${currentAttachment.name}`, {
+      attachment: currentAttachment
+        ? {
+            fileName: currentAttachment.name,
+            mimeType: currentAttachment.type,
+            size: currentAttachment.size,
+          }
+        : null,
+    });
 
     setLoading(true);
 
     try {
+      const formData = new FormData();
+
+      formData.append("message", text);
+
+      if (chatId) {
+        formData.append("chatId", chatId);
+      }
+
+      if (currentAttachment) {
+        formData.append("file", currentAttachment);
+      }
+
       const data = await api("/api/message/send", {
         method: "POST",
-        body: {
-          message: text,
-          chatId,
-          materialId: material?.id,
-        },
+        body: formData,
       });
 
       const assistantMessage = {
         role: "assistant",
-
         content:
           data.answer ||
           data.reply ||
+          data.assistantMessage?.content ||
           "",
         answer:
           data.answer ||
           data.reply ||
+          data.assistantMessage?.content ||
           "",
         segments: Array.isArray(data.segments)
           ? data.segments
@@ -367,7 +430,7 @@ export default function ChatPage() {
         intent: data.intent || null,
         sources: Array.isArray(data.sources)
           ? data.sources
-          : [],
+          : data.assistantMessage?.sources || [],
       };
 
       setMessages((previousMessages) => [
@@ -381,47 +444,66 @@ export default function ChatPage() {
         setChats((previousChats) => [
           {
             _id: data.chatId,
-            title: text.slice(0, 40),
+            title:
+              text.slice(0, 40) ||
+              currentAttachment?.name ||
+              "New chat",
           },
           ...previousChats,
         ]);
       }
-
     } catch (err) {
-      addMessage("error", err.message || "Something went wrong.");
+      addMessage(
+        "error",
+        err.message || "Something went wrong."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFile = async (e) => {
+  const handleFile = (e) => {
     const file = e.target.files?.[0];
 
     e.target.value = "";
 
     if (!file) return;
 
-    const form = new FormData();
+    const maxSize = 15 * 1024 * 1024;
 
-    form.append("file", file);
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
 
-    setUploading(true);
+    if (file.size > maxSize) {
+      addMessage(
+        "error",
+        "File size must be less than 15MB."
+      );
+      return;
+    }
 
-    try {
-      const data = await api("/api/materials", {
-        method: "POST",
-        body: form,
-      });
+    if (!allowedTypes.includes(file.type)) {
+      addMessage(
+        "error",
+        "Unsupported file type. Upload a PDF, DOCX, TXT, JPG, PNG, or WEBP file."
+      );
+      return;
+    }
 
-      setMaterial({
-        id: data._id,
-        name: file.name,
-      });
+    setAttachment(file);
+  };
 
-    } catch (err) {
-      addMessage("error", err.message);
-    } finally {
-      setUploading(false);
+  const removeAttachment = () => {
+    setAttachment(null);
+
+    if (fileRef.current) {
+      fileRef.current.value = "";
     }
   };
 
@@ -445,7 +527,6 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-black text-neutral-300">
-
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-10 bg-black/70 md:hidden"
@@ -460,7 +541,6 @@ export default function ChatPage() {
             : "-translate-x-full"
         }`}
       >
-
         <div className="p-5">
           <Logo />
         </div>
@@ -471,7 +551,6 @@ export default function ChatPage() {
             className="flex w-full items-center gap-3 rounded-xl border border-neutral-800 px-4 py-3 text-sm text-white transition hover:border-neutral-600 hover:bg-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <Plus size={18} />
-
             <span>New chat</span>
           </button>
         </div>
@@ -529,7 +608,6 @@ export default function ChatPage() {
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col">
-
         <div className="px-4 py-3 md:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -542,7 +620,6 @@ export default function ChatPage() {
 
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-3xl px-6 py-8">
-
             {messages.length === 0 ? (
               <div className="pt-[15vh]">
                 <h1 className="text-4xl font-light tracking-tight text-white">
@@ -570,7 +647,6 @@ export default function ChatPage() {
                 </div>
               </div>
             ) : (
-
               <ul
                 className="space-y-8"
                 aria-live="polite"
@@ -584,11 +660,24 @@ export default function ChatPage() {
                         : ""
                     }
                   >
-
                     {message.role === "user" && (
-                      <p className="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-neutral-900 px-4 py-2.5 leading-relaxed text-white">
-                        {message.content}
-                      </p>
+                      <div className="max-w-[85%] space-y-2">
+                        {message.attachment && (
+                          <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm text-neutral-400">
+                            <FileText size={16} className="shrink-0" />
+                            <span className="max-w-60 truncate">
+                              {message.attachment.fileName ||
+                                message.attachment.name}
+                            </span>
+                          </div>
+                        )}
+
+                        {message.content && (
+                          <p className="whitespace-pre-wrap rounded-2xl bg-neutral-900 px-4 py-2.5 leading-relaxed text-white">
+                            {message.content}
+                          </p>
+                        )}
+                      </div>
                     )}
 
                     {message.role === "error" && (
@@ -604,7 +693,6 @@ export default function ChatPage() {
                         />
                       </div>
                     )}
-
                   </li>
                 ))}
 
@@ -615,56 +703,42 @@ export default function ChatPage() {
                       className="animate-spin"
                     />
 
-                    <span>Thinking...</span>
+                    <span>
+                      {attachment
+                        ? "Processing your attachment..."
+                        : "Thinking..."}
+                    </span>
                   </li>
                 )}
               </ul>
             )}
 
             <div ref={bottomRef} />
-
           </div>
         </div>
 
         <div className="px-6 pb-6">
           <div className="mx-auto max-w-3xl">
-
-            {(uploading || material) && (
-              <p className="mb-2 flex items-center gap-2 text-sm text-neutral-500">
-
-                {uploading
-                  ? "Uploading..."
-                  : `Using ${material.name}`}
-
-                {material && (
-                  <button
-                    onClick={() => setMaterial(null)}
-                    title="Remove attachment"
-                    aria-label="Remove attachment"
-                    className="rounded-full p-1 text-neutral-500 hover:bg-neutral-800 hover:text-white"
-                  >
-                    <X size={15} />
-                  </button>
-                )}
-
-              </p>
-            )}
+            <AttachmentPreview
+              file={attachment}
+              onRemove={removeAttachment}
+            />
 
             <div className="flex items-end gap-2 rounded-3xl border border-neutral-800 bg-neutral-950 p-2 transition focus-within:border-neutral-600">
-
               <input
                 ref={fileRef}
                 type="file"
-                accept=".pdf,.doc,.docx,.txt"
+                accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.webp"
                 className="sr-only"
                 onChange={handleFile}
               />
 
               <button
+                type="button"
                 onClick={() => fileRef.current?.click()}
-                title="Attach a document"
-                aria-label="Attach a document"
-                disabled={uploading}
+                title="Attach a document or image"
+                aria-label="Attach a document or image"
+                disabled={loading || uploading}
                 className="rounded-full p-3 text-neutral-400 transition hover:bg-neutral-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-50"
               >
                 {uploading ? (
@@ -690,23 +764,23 @@ export default function ChatPage() {
 
               <button
                 onClick={send}
-                disabled={loading || !input.trim()}
+                disabled={
+                  loading ||
+                  (!input.trim() && !attachment)
+                }
                 title="Send message"
                 aria-label="Send message"
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <Send size={18} />
               </button>
-
             </div>
 
             <p className="mt-2 text-center text-xs text-neutral-700">
               StudyBuddyAI helps you learn. Always think critically about your answers.
             </p>
-
           </div>
         </div>
-
       </main>
     </div>
   );
